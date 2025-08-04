@@ -5,6 +5,7 @@ import { getLatestImage } from './controller/latest-image';
 import { getObsidianData } from './controller/obsidian-data';
 import { convertImage, uploadImage } from './controller/upload-image';
 import { latestQuoteGet, latestQuotePost } from './controller/quote';
+import { getScreenshot } from './controller/screenshot';
 var cors = require('cors')
 
 const app = express();
@@ -26,7 +27,9 @@ app.post('/upload', uploadImage('image'), convertImage);
 
 app.post('/quote', latestQuotePost)
 app.get('/quote', latestQuoteGet)
-  
+
+app.get('/screenshot', getScreenshot)
+
 app.listen('3000', () => {
     console.log(`Server running at http://localhost:${3000}`);
 });
