@@ -6,6 +6,7 @@ interface localDB {
         text: string
         lastUpdatedAt: string
     }
+    latestData: string
 }
 
 export const getLocalDB = async () => {
