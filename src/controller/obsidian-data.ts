@@ -104,21 +104,20 @@ const filterTodayTasks = (tasks: Task[]) => {
 	const date = today.getHours() <= 2 ? sub(today, { days: 1 }) : today;
 	const formattedDate = format(date, 'yyyy-MM-dd');
 	const dueTodayTasks = tasks
-		.filter((task) => task.date && task.date <= formattedDate)
-		.filter((task) => !task.title?.includes('[x]'));
+		.filter((task) => task.date && task.date <= formattedDate && !task.title?.includes('[x]'))
 	const parsedTasks = dueTodayTasks.map((task) => ({
 		...task,
 		title: task.title.replace('- [ ]', ''),
 	}));
-	const completedTasks = tasks.filter((task) =>
+	const todayTasks = tasks.filter((task) => task.date && task.date === formattedDate)
+	const completedTasks = todayTasks.filter((task) =>
 		task.title.includes(formattedDate),
 	);
 	return {
 		tasks: parsedTasks,
+		completedCount: completedTasks.length,
 		progress:
-			100 *
-			(completedTasks.length /
-				(dueTodayTasks.length + completedTasks.length)),
+			100 * (completedTasks.length / todayTasks.length),
 	};
 };
 
