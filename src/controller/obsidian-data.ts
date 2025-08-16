@@ -5,10 +5,9 @@ import {
 } from '../constants/constants';
 import { DATE_REGEX, HASHTAG_REGEX, RECURS_REGEX } from '../constants/regex';
 import { getCurrentQuote } from '../model/quote.model';
+import { differenceInDays, isMonday, isWeekend, previousMonday, sub, format } from 'date-fns';
 
 const fs = require('fs').promises;
-const format = require('date-fns').format;
-const sub = require('date-fns').sub;
 
 interface Task {
 	title: string;
@@ -36,6 +35,7 @@ interface ObsidianDataResponse {
 	};
 	deepWork: {
 		completed: number;
+		debt: number;
 		total: number;
 	};
 	calendarTasks: {
@@ -164,13 +164,35 @@ const filterDailyTasks = (tasks: Task[], isHabit?: boolean) => {
 	};
 };
 
-const getDeepWorkData = (tasks: Task[]) => {
-	const deepWorkTasks = tasks.filter((task) => task.tags?.includes('#work'));
+const getDeepWorkData = async (tasks: Task[]) => {
+	const today = new Date();
+	let debt = 0;
+	if(isWeekend(today)) return {
+		completed: 6,
+		total: 6,
+		debt,
+	};
+	const deepWorkTasks = tasks.filter((task) => task.tags?.includes('#deepwork'));
 	const completed = deepWorkTasks.filter((task) =>
 		task.title.includes('[x]'),
 	).length;
+	if(!isMonday(today)) {
+		const lastMonday = previousMonday(today);
+		const diffInDays = differenceInDays(today, lastMonday);
+		for(let i = 1; i <= diffInDays; i++) {
+			const notePath = `${ROUTE_TO_OBSIDIAN}Daily \Notes/${format(sub(today, {days: i}), 'yyyy/MMM/yyyy-MM-dd')}.md`
+			try {
+				const dayTasks = await getTasksFromNote(notePath);
+				const pendingDeepWorkTasks = dayTasks.filter((task) => task.tags?.includes('#work') && !task.title.includes('[x]'));
+				debt += pendingDeepWorkTasks.length
+			} catch (e) {
+				console.log('error fetching file for deep work debt', e);
+			}
+		}
+	}
 	return {
 		completed,
+		debt,
 		total: deepWorkTasks.length,
 	};
 };
@@ -213,7 +235,7 @@ export const parseObsidianTasks = async () => {
 	const allTasksToday = await getTasksFromNote(MASTER_TASKLIST_PATH);
 	const tasksToday = filterTodayTasks(allTasksToday);
 
-	const deepWork = getDeepWorkData(dailyNoteTasks);
+	const deepWork = await getDeepWorkData(dailyNoteTasks);
 	const quote = await getCurrentQuote();
 
 	return {
