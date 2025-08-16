@@ -68,7 +68,7 @@ const parseTask = (task: string) => {
 			return '';
 		});
 
-	const tags = Array.from(task.match(HASHTAG_REGEX) ?? []);
+	const tags = Array.from(task.match(HASHTAG_REGEX) ?? []).map(tag => tag.replace('#', ''));
 	const title = task.replace(HASHTAG_REGEX, '').trim();
 
 	const today = format(new Date(), 'yyyy-MM-dd');
@@ -124,16 +124,28 @@ const filterTodayTasks = (tasks: Task[]) => {
 	};
 };
 
+const sortDailies = (tasks: Task[]) => {
+	const NIGHT_CUTOFF = 22;
+	const hour = new Date().getHours();
+	const noNight = tasks.filter(task => !task.tags?.includes('night'))
+	const nightFirst = [
+		...tasks.filter(task => task.tags?.includes('night')),
+		...noNight,
+	];
+	const showNight = hour >= NIGHT_CUTOFF;
+	return showNight ? nightFirst : noNight
+}
+
 const filterDailyTasks = (tasks: Task[], isHabit?: boolean) => {
 	const filteredTasks = tasks.filter((task) => {
 		const taskConditional = isHabit
-			? !task.tags?.includes('#req')
-			: task.tags?.includes('#req');
-		return task.tags?.includes('#todo') && taskConditional;
+			? !task.tags?.includes('req')
+			: task.tags?.includes('req');
+		return task.tags?.includes('todo') && taskConditional;
 	});
 	const completeTasks = filteredTasks.filter((task) => task.isComplete);
 	const parsedTasks = filteredTasks
-		.filter((task) => task.tags?.includes('#daily'))
+		.filter((task) => task.tags?.includes('daily'))
 		.map((task) => {
 			let title = task.title.replace('> - [ ]', '').replace('> - [x]', '');
 			let tags = task.tags ?? [];
@@ -155,8 +167,9 @@ const filterDailyTasks = (tasks: Task[], isHabit?: boolean) => {
 				tags,
 			};
 		});
+	const sortedTasks = sortDailies(parsedTasks.filter(task => !task.isComplete))
 	return {
-		tasks: parsedTasks.filter(task => !task.isComplete),
+		tasks: sortedTasks,
 		completeTasks: parsedTasks.filter(task => task.isComplete),
 		progress: 100 * (completeTasks.length / filteredTasks.length),
 		fileExists: !!tasks.length,
@@ -171,7 +184,7 @@ const getDeepWorkData = async (tasks: Task[]) => {
 		total: 6,
 		debt,
 	};
-	const deepWorkTasks = tasks.filter((task) => task.tags?.includes('#deepwork'));
+	const deepWorkTasks = tasks.filter((task) => task.tags?.includes('deepwork'));
 	const completed = deepWorkTasks.filter((task) =>
 		task.title.includes('[x]'),
 	).length;
@@ -182,7 +195,7 @@ const getDeepWorkData = async (tasks: Task[]) => {
 			const notePath = `${ROUTE_TO_OBSIDIAN}Daily \Notes/${format(sub(today, {days: i}), 'yyyy/MMM/yyyy-MM-dd')}.md`
 			try {
 				const dayTasks = await getTasksFromNote(notePath);
-				const pendingDeepWorkTasks = dayTasks.filter((task) => task.tags?.includes('#work') && !task.title.includes('[x]'));
+				const pendingDeepWorkTasks = dayTasks.filter((task) => task.tags?.includes('work') && !task.title.includes('[x]'));
 				debt += pendingDeepWorkTasks.length
 			} catch (e) {
 				console.log('error fetching file for deep work debt', e);
@@ -224,7 +237,7 @@ const getCalendarTasks = async () => {
 };
 
 const getTagCounts = (tasks: Task[]) => {
-	const health = tasks.filter(task => task.tags?.find(tag => tag === '#health')).length;
+	const health = tasks.filter(task => task.tags?.find(tag => tag === 'health')).length;
 	return {
 		health,
 	}
