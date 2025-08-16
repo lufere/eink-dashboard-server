@@ -16,6 +16,7 @@ interface Task {
 	recurs?: string;
 	isExpired: boolean;
 	dueToday: boolean;
+	isComplete?: boolean;
 }
 
 interface ObsidianDataResponse {
@@ -73,6 +74,7 @@ const parseTask = (task: string) => {
 	const today = format(new Date(), 'yyyy-MM-dd');
 	const isExpired = today > date;
 	const dueToday = today === date;
+	const isComplete = task.includes('[x]')
 	if (isExpired) tags.push('expired');
 	if (recurs) tags.push('recurs');
 	return {
@@ -82,6 +84,7 @@ const parseTask = (task: string) => {
 		recurs,
 		isExpired,
 		dueToday,
+		isComplete,
 	};
 };
 
@@ -128,16 +131,11 @@ const filterDailyTasks = (tasks: Task[], isHabit?: boolean) => {
 			: task.tags?.includes('#req');
 		return task.tags?.includes('#todo') && taskConditional;
 	});
-	const completeTasks = filteredTasks.filter((task) =>
-		task.title?.includes('[x]'),
-	);
-	const incompleteTasks = filteredTasks.filter(
-		(task) => !task.title?.includes('[x]'),
-	);
-	const parsedTasks = incompleteTasks
+	const completeTasks = filteredTasks.filter((task) => task.isComplete);
+	const parsedTasks = filteredTasks
 		.filter((task) => task.tags?.includes('#daily'))
 		.map((task) => {
-			let title = task.title.replace('> - [ ]', '');
+			let title = task.title.replace('> - [ ]', '').replace('> - [x]', '');
 			let tags = task.tags ?? [];
 			if (title.includes('🌞')) {
 				title = title.replace('🌞', '');
@@ -158,7 +156,8 @@ const filterDailyTasks = (tasks: Task[], isHabit?: boolean) => {
 			};
 		});
 	return {
-		tasks: parsedTasks,
+		tasks: parsedTasks.filter(task => !task.isComplete),
+		completeTasks: parsedTasks.filter(task => task.isComplete),
 		progress: 100 * (completeTasks.length / filteredTasks.length),
 		fileExists: !!tasks.length,
 	};
@@ -224,6 +223,13 @@ const getCalendarTasks = async () => {
 		.filter((task) => task.message);
 };
 
+const getTagCounts = (tasks: Task[]) => {
+	const health = tasks.filter(task => task.tags?.find(tag => tag === '#health')).length;
+	return {
+		health,
+	}
+}
+
 export const parseObsidianTasks = async () => {
 	const calendarTasks = await getCalendarTasks();
 
@@ -238,6 +244,8 @@ export const parseObsidianTasks = async () => {
 	const deepWork = await getDeepWorkData(dailyNoteTasks);
 	const quote = await getCurrentQuote();
 
+	const completedTasks = [...tasksDailies.completeTasks, ...tasksHabits.completeTasks]
+	const tagCounts = getTagCounts(completedTasks);
 	return {
 		tasksToday,
 		tasksDailies,
@@ -245,6 +253,7 @@ export const parseObsidianTasks = async () => {
 		deepWork,
 		calendarTasks,
 		quote,
+		tagCounts
 	};
 };
 
