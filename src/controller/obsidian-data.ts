@@ -5,7 +5,7 @@ import {
 } from '../constants/constants';
 import { DATE_REGEX, HASHTAG_REGEX, RECURS_REGEX } from '../constants/regex';
 import { getCurrentQuote } from '../model/quote.model';
-import { differenceInDays, isMonday, isWeekend, previousMonday, sub, format } from 'date-fns';
+import { TASK_MAPPINGS, taskMappingKey } from '../constants/NFC-mappings';
 
 const fs = require('fs').promises;
 
@@ -278,3 +278,29 @@ export const getObsidianData = async (
 
 	res.send(data);
 };
+
+const buildTodoTask = (text: string, date: string) => {
+	return `- [ ] #todo ${text} 📅 ${date}`
+}
+
+export const appendToTaskList = async(
+	task: string
+) => {
+	try {
+		const currentList = await fs.readFile(MASTER_TASKLIST_PATH, 'utf8');
+		const newList = `${task}\n${currentList}`
+		await fs.writeFile(MASTER_TASKLIST_PATH, newList)
+		return newList
+	} catch (e) {
+		console.log('Could not append to Master Task List:', e);
+	}
+}
+
+export const addNewNFCTask = async(queryTask: taskMappingKey) => {
+	const taskText = TASK_MAPPINGS[queryTask]
+	if(!taskText) throw new Error(`Task ${queryTask} is not suppported`)
+	const task = buildTodoTask(taskText, format(new Date(), 'yyyy-MM-dd'))
+	await appendToTaskList(task)
+	return task
+}
+

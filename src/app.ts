@@ -7,6 +7,7 @@ import { convertImage, uploadImage } from './controller/upload-image';
 import { latestQuoteGet, latestQuotePost } from './controller/quote';
 import { getScreenshot } from './controller/screenshot';
 import { screenshotJob } from './controller/screenshot-job';
+import { createNFCTask } from './controller/nfc-task';
 var cors = require('cors');
 const cron = require('node-cron');
 
@@ -31,6 +32,8 @@ app.post('/quote', latestQuotePost);
 app.get('/quote', latestQuoteGet);
 
 app.get('/screenshot', getScreenshot);
+
+app.get('/nfc-task', createNFCTask)
 
 app.listen('3000', () => {
 	console.log(`Server running at http://localhost:${3000}`);
