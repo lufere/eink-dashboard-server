@@ -17,7 +17,6 @@ export const updateQuote = async () => {
     const randomIndex = Math.floor(Math.random() * quotes.length)
     const quote = quotes[randomIndex]
     const currentDate = new Date();
-    checkIfQuoteExpired(data.quote.lastUpdatedAt);
     const newData = {
         ...data,
         quote: {
@@ -32,5 +31,7 @@ export const updateQuote = async () => {
 
 export const getCurrentQuote = async ()  => {
     const db = await getLocalDB()
+    const hasExpired = checkIfQuoteExpired(db.quote.lastUpdatedAt)
+    if(hasExpired) updateQuote()
     return db.quote.text;
 }
