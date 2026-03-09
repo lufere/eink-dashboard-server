@@ -88,7 +88,7 @@ const parseTask = (task: string) => {
 	};
 };
 
-const getTasksFromNote = async (notePath: string) => {
+const getRawTasks = async (notePath: string) => {
 	let tasks: string[] = [];
 	try {
 		const data = await fs.readFile(notePath, 'utf8');
@@ -96,7 +96,11 @@ const getTasksFromNote = async (notePath: string) => {
 	} catch (e) {
 		console.log('error fetching file', e);
 	}
+	return tasks
+};
 
+const getTasksFromNote = async (notePath: string) => {
+	const tasks = await getRawTasks(notePath)
 	const taskData = tasks.map((task) => parseTask(task));
 	return taskData;
 };
@@ -302,5 +306,36 @@ export const addNewNFCTask = async(queryTask: taskMappingKey) => {
 	const task = buildTodoTask(taskText, format(new Date(), 'yyyy-MM-dd'))
 	await appendToTaskList(task)
 	return task
+}
+
+const moveTasksForward = async (
+	tasksToMove: {text: string, date: string}[],
+	daysFromToday: number = 0,
+	notePath: string = MASTER_TASKLIST_PATH
+) => {
+	const tasks = await getRawTasks(notePath)
+	const newTasks = tasks.map(task => {
+		const shouldUpdateTask = tasksToMove.some(t => task.includes(t.text) && task.includes(t.date))
+		if(!shouldUpdateTask) return task
+		const dateIndex = task.indexOf('📅 ')
+		if (!dateIndex) return task
+		const dateStart = dateIndex + 3
+		const dateEnd = dateStart + 10 // length of YYYY-MM-DD
+		const newDate = format(addDays(new Date(), daysFromToday), 'yyyy-MM-dd')
+		const newTask = task.slice(0, dateStart) + newDate + task.slice(dateEnd)
+		return newTask
+	})
+	const newList = newTasks.join('\n')
+	await fs.writeFile(notePath, newList)
+}
+
+export const moveExpiredTasks = async(daysFromToday: number = 0) => {
+	const tasks = await getTasksFromNote(MASTER_TASKLIST_PATH)
+	const expiredTasks = tasks
+		.filter(t => t.isExpired && !t.isComplete)
+		.map(t => ({ text: t.title.replace('- [ ]  ', ''), date: t.date}))
+	console.log({expiredTasks})
+	await moveTasksForward(expiredTasks)
+	return expiredTasks.map(t => t.text)
 }
 
