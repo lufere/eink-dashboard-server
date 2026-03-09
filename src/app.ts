@@ -37,6 +37,7 @@ app.get('/screenshot', getScreenshot);
 app.get('/nfc-task', createNFCTask)
 
 app.post('/expired-task', expiredTaskPost)
+app.post('/complete-task', completeTaskPost)
 
 app.listen('3000', () => {
 	console.log(`Server running at http://localhost:${3000}`);

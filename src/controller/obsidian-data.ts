@@ -339,3 +339,21 @@ export const moveExpiredTasks = async(daysFromToday: number = 0) => {
 	return expiredTasks.map(t => t.text)
 }
 
+export const completeTask = async (taskTitle: string, type: string, date?: string) => {
+	const path = type === 'tasksToday' ? MASTER_TASKLIST_PATH : getDailyNotePath()
+	const rawTasks = await getRawTasks(path)
+	const today = format(new Date(), 'yyyy-MM-dd')
+	console.log(rawTasks)
+	let hasCompletedTask = false
+	const newTasks = rawTasks.map(task => {
+		if(task.includes(taskTitle) && task.includes(date ?? today))  {
+			hasCompletedTask = true
+			return `${task.replace('- [ ]', '- [x]')} ✅ ${today}`
+		}
+		return task
+	})
+	console.log(newTasks)
+	if(!hasCompletedTask) throw new Error('[complete-task] Could not find a task to complete')
+	await fs.writeFile(path, newTasks.join('\n'))
+}
+
