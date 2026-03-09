@@ -26,7 +26,7 @@ export const updateQuote = async () => {
     }
     const json = JSON.stringify(newData);
     await fs.writeFile('./src/model/localDB.json', json, 'utf8');
-    return data.quote.text;
+    return quote;
 }
 
 export const getCurrentQuote = async ()  => {

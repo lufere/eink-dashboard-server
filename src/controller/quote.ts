@@ -3,8 +3,8 @@ import { getCurrentQuote, updateQuote } from "../model/quote.model";
 
 export const latestQuotePost = async (_req: Request, res: Response) => {
     try {
-        await updateQuote()
-        res.send('quote')
+        const quote = await updateQuote()
+        res.json({quote})
     } catch(e) {
         console.log('Faisled to load/parse DB', e);
         res.end('Error getting latest quote')

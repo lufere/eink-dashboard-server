@@ -5,6 +5,7 @@ import {
 } from '../constants/constants';
 import { DATE_REGEX, HASHTAG_REGEX, RECURS_REGEX } from '../constants/regex';
 import { getCurrentQuote } from '../model/quote.model';
+import { differenceInDays, isMonday, isWeekend, previousMonday, sub, format, addDays } from 'date-fns';
 import { TASK_MAPPINGS, taskMappingKey } from '../constants/NFC-mappings';
 
 const fs = require('fs').promises;
@@ -17,12 +18,15 @@ interface Task {
 	isExpired: boolean;
 	dueToday: boolean;
 	isComplete?: boolean;
+	weight?: number;
+	id: string;
 }
 
 interface ObsidianDataResponse {
 	tasksToday: {
 		tasks: Task[];
 		progress: number;
+    	completedCount: number;
 	};
 	tasksDailies: {
 		tasks: Task[];
@@ -46,6 +50,9 @@ interface ObsidianDataResponse {
 		tags: string[];
 	}[];
 	quote: string;
+	tagCounts: {
+		health: number
+	}
 }
 
 const getDailyNotePath = () => {
@@ -72,9 +79,10 @@ const parseTask = (task: string) => {
 	const title = task.replace(HASHTAG_REGEX, '').trim();
 
 	const today = format(new Date(), 'yyyy-MM-dd');
-	const isExpired = today > date;
+	const isExpired = date && today > date ? true : false;
 	const dueToday = today === date;
 	const isComplete = task.includes('[x]')
+	const id = `${title}#${date}`
 	if (isExpired) tags.push('expired');
 	if (recurs) tags.push('recurs');
 	return {
@@ -85,6 +93,7 @@ const parseTask = (task: string) => {
 		isExpired,
 		dueToday,
 		isComplete,
+		id,
 	};
 };
 
@@ -115,7 +124,19 @@ const filterTodayTasks = (tasks: Task[]) => {
 	const parsedTasks = dueTodayTasks.map((task) => ({
 		...task,
 		title: task.title.replace('- [ ]', ''),
-	}));
+	}))
+	.map(task => {
+		let weight = 0;
+		if(task.tags?.includes('important')) weight += 1000
+		if(task.tags?.includes('expired')) weight += 100
+		if(task.tags?.includes('blocker')) weight += 10
+		if(task.tags?.includes('work')) weight += 1
+		return {
+			...task,
+			weight,
+		}
+	})
+	.sort((a, b) => b.weight - a.weight)
 	const todayTasks = tasks.filter((task) => task.date && task.date === formattedDate)
 	const completedTasks = todayTasks.filter((task) =>
 		task.title.includes(formattedDate),

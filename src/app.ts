@@ -9,6 +9,7 @@ import { getScreenshot } from './controller/screenshot';
 import { screenshotJob } from './controller/screenshot-job';
 import { expiredTaskPost } from './controller/expired-task';
 import { createNFCTask } from './controller/nfc-task';
+import { completeTaskPost } from './controller/complete-task';
 var cors = require('cors');
 const cron = require('node-cron');
 
